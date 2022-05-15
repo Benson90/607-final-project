@@ -1,0 +1,125 @@
+---
+title: "607 final project"
+author: "Benson"
+date: "5/11/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(infer)
+library(ggplot2)
+```
+
+
+
+```{r load}
+hate_url<- "https://raw.githubusercontent.com/fivethirtyeight/data/master/hate-crimes/hate_crimes.csv"
+hate_url_ds <-read.csv(hate_url)
+
+hate_education_ds <- hate_url_ds %>%
+  select("state","hate_crimes_per_100k_splc","avg_hatecrimes_per_100k_fbi")
+
+# need to know state population
+# need to know college rate
+
+Education_rate<- "https://raw.githubusercontent.com/Benson90/607-final-project/main/csvData-2.csv"
+Education_rate_ds <-read.csv(Education_rate)
+
+
+hate_education_ds$avg_hatecrimes_per_100k_fbi <- hate_education_ds$avg_hatecrimes_per_100k_fbi / 100000
+hate_education_ds$hate_crimes_per_100k_splc <- hate_education_ds$hate_crimes_per_100k_splc / 100000
+
+Education_rate_ds$PercentHighSchoolOrHigher <- Education_rate_ds$PercentHighSchoolOrHigher / 100
+Education_rate_ds$PercentBachelorsOrHigher <- Education_rate_ds$PercentBachelorsOrHigher / 100
+
+
+head(hate_education_ds)
+head(Education_rate_ds)
+
+
+joined_tibble <- left_join(hate_education_ds, Education_rate_ds, 
+              by = c("state" = "State"))
+
+
+head(joined_tibble)
+
+
+
+```
+```{r}
+library(usmap)
+library(ggplot2)
+
+plot_usmap(data = joined_tibble, values = "hate_crimes_per_100k_splc", color = "red") + 
+  scale_fill_continuous(
+    low = "white", high = "red", name = "Hate Crimes SPLC source", label = scales::comma
+  ) + theme(legend.position = "right")
+
+
+plot_usmap(data = joined_tibble, values = "avg_hatecrimes_per_100k_fbi", color = "red") + 
+  scale_fill_continuous(
+    low = "white", high = "red", name = "Hate Crimes fbi source", label = scales::comma
+  ) + theme(legend.position = "right")
+
+
+plot_usmap(data = joined_tibble, values = "PercentBachelorsOrHigher", color = "blue") + 
+  scale_fill_continuous(
+    low = "white", high = "blue", name = "Bachelors Or Higher", label = scales::comma
+  ) + theme(legend.position = "right")
+
+plot_usmap(data = joined_tibble, values = "PercentHighSchoolOrHigher", color = "blue") + 
+  scale_fill_continuous(
+    low = "white", high = "blue", name = "HighSchool Or Higher", label = scales::comma
+  ) + theme(legend.position = "right")
+```
+```{r  regression}
+m1 <- lm(PercentHighSchoolOrHigher ~ avg_hatecrimes_per_100k_fbi, data = joined_tibble)
+summary(m1)
+
+ggplot(data = joined_tibble, aes(x = avg_hatecrimes_per_100k_fbi, y = PercentHighSchoolOrHigher)) +
+  geom_jitter() + 
+  geom_smooth(method = "lm")
+
+hist(m1$residuals)
+qqnorm(m1$residuals)
+qqline(m1$residuals)
+
+
+m2 <- lm(PercentBachelorsOrHigher ~ avg_hatecrimes_per_100k_fbi, data = joined_tibble)
+summary(m2)
+
+ggplot(data = joined_tibble, aes(x = avg_hatecrimes_per_100k_fbi, y = PercentBachelorsOrHigher)) +
+  geom_jitter() + 
+  geom_smooth(method = "lm")
+
+hist(m2$residuals)
+qqnorm(m2$residuals)
+qqline(m2$residuals)
+
+
+m3 <- lm(PercentHighSchoolOrHigher ~ hate_crimes_per_100k_splc, data = joined_tibble)
+summary(m3)
+
+ggplot(data = joined_tibble, aes(x = hate_crimes_per_100k_splc, y = PercentHighSchoolOrHigher)) +
+  geom_jitter() + 
+  geom_smooth(method = "lm")
+
+hist(m3$residuals)
+qqnorm(m3$residuals)
+qqline(m3$residuals)
+
+
+m4 <- lm(PercentBachelorsOrHigher ~ hate_crimes_per_100k_splc, data = joined_tibble)
+summary(m4)
+
+ggplot(data = joined_tibble, aes(x = hate_crimes_per_100k_splc, y = PercentBachelorsOrHigher)) +
+  geom_jitter() + 
+  geom_smooth(method = "lm")
+
+hist(m4$residuals)
+qqnorm(m4$residuals)
+qqline(m4$residuals)
+```
+
